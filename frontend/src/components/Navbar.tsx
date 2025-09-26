@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Button } from "./ui/button";
 import { Link } from "react-router";
+import { Button } from "./ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "./ui/dialog";
+import AuthForm from "./AuthForm";
 
 function Navbar() {
     const [showNav, setShowNav] = useState(true);
@@ -27,9 +35,19 @@ function Navbar() {
             <Link to="/" className="h-full text-primary-foreground">
                 <p>FLICKMETER</p>
             </Link>
-            <Button className="ml-auto" variant="secondary">
-                Sign in
-            </Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button className="ml-auto" variant="secondary">
+                        Sign in
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Sign Up or Log In</DialogTitle>
+                    </DialogHeader>
+                    <AuthForm />
+                </DialogContent>
+            </Dialog>
         </header>
     );
 }
