@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./ui/button";
+import { Link } from "react-router";
 
 function Navbar() {
     const [showNav, setShowNav] = useState(true);
@@ -7,7 +8,7 @@ function Navbar() {
 
     useEffect(() => {
         const handleScroll = () => {
-            const currentScrollY = window.scrollY; // read directly
+            const currentScrollY = window.scrollY;
             const diff = currentScrollY - lastScrollY.current;
 
             setShowNav(diff <= 0);
@@ -23,9 +24,9 @@ function Navbar() {
         <header
             className={`sticky top-0 flex h-20 flex-row items-center bg-primary p-6 transition-transform delay-200 duration-500 ${showNav ? "translate-y-0" : "-translate-y-full"}`}
         >
-            <a href="/" className="h-full text-primary-foreground">
+            <Link to="/" className="h-full text-primary-foreground">
                 <p>FLICKMETER</p>
-            </a>
+            </Link>
             <Button className="ml-auto" variant="secondary">
                 Sign in
             </Button>
