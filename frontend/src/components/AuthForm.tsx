@@ -15,12 +15,17 @@ function AuthForm() {
             <Button onClick={() => handleOAuth("github")} variant="outline">
                 Github
             </Button>
-            <input
-                type="checkbox"
-                onClick={() => {
-                    keep.current = !keep.current;
-                }}
-            />
+
+            <label>
+                <input
+                    name="keep-me"
+                    type="checkbox"
+                    onClick={() => {
+                        keep.current = !keep.current;
+                    }}
+                />{" "}
+                Remember Me
+            </label>
         </>
     );
 }
