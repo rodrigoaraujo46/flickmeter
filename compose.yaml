@@ -1,0 +1,40 @@
+services:
+  web:
+    build: ./frontend
+    command: pnpm dev --host
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend
+          target: ./app
+          initial_sync: true
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: pnpm-lock.yaml package.json
+    ports:
+      - "5173:5173"
+      - "4173:4173"
+
+
+  server:
+    build: ./backend
+    develop:
+      watch:
+      - action: sync
+        path: ./backend
+        initial_sync: true
+        target: ./app
+
+    depends_on:
+      - redis
+
+  redis:
+    image: "redis:alpine"
+
+  psql:
+    image: "postgres:alpine"
+    environment:
+      POSTGRES_USER: flickmeter
+      POSTGRES_PASSWORD: Madagascar
+      POSTGRES_DB: flickmeter
