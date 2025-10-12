@@ -1,7 +1,7 @@
 services:
   web:
     build: ./frontend
-    command: pnpm dev --host
+    command: bun dev --host
     develop:
       watch:
         - action: sync
@@ -11,7 +11,7 @@ services:
           ignore:
             - node_modules/
         - action: rebuild
-          path: pnpm-lock.yaml package.json
+          path: bun.lock package.json
     ports:
       - "5173:5173"
       - "4173:4173"

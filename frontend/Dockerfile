@@ -1,11 +1,10 @@
-FROM node:latest
-RUN npm install -g pnpm
+FROM oven/bun:latest
 
 RUN useradd -ms /bin/sh -u 1001 app
 USER app
 
 WORKDIR /app
-COPY ./package.json ./pnpm-lock.yaml ./
-RUN pnpm install
+COPY ./package.json ./bun.lock ./
+RUN bun install
 
 COPY --chown=app:app . /app
