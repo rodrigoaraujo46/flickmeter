@@ -14,11 +14,9 @@ import { TrendingMovies } from "@/services/api/movies";
 
 function Home() {
     return (
-        <main>
-            <div className="flex w-full flex-row">
-                <TrendingTabbed />
-            </div>
-        </main>
+        <div className="flex w-full flex-row">
+            <TrendingTabbed />
+        </div>
     );
 }
 

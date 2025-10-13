@@ -6,7 +6,7 @@ function Carousel({ className, children, ...props }: Props) {
     return (
         <div
             className={cn(
-                "flex w-full snap-x snap-proximity flex-row gap-4 overflow-x-scroll scroll-smooth pb-3.5",
+                "flex h-[22rem] w-full snap-x snap-proximity flex-row gap-4 overflow-x-scroll scroll-smooth pb-3.5",
                 className,
             )}
             style={{
@@ -21,7 +21,7 @@ function Carousel({ className, children, ...props }: Props) {
 
 function CarouselItem({ className, children, ...props }: Props) {
     return (
-        <div className={cn("h-60 shrink-0 snap-start", props)} {...props}>
+        <div className={cn("h-full shrink-0 snap-start", props)} {...props}>
             {children}
         </div>
     );

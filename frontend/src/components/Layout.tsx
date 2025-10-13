@@ -7,7 +7,7 @@ export function Layout() {
         <>
             <Toaster />
             <Navbar />
-            <main className="min-w-[320px] max-w-[1280px]">
+            <main>
                 <Outlet />
             </main>
         </>
