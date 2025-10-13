@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/config"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/handlers"
+	"github.com/rodrigoaraujo46/flickmeter/backend/internal/moviedb"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/stores"
 )
 
@@ -21,11 +22,12 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	startUserHandler(c, e)
+	setUpUserHandler(c, e)
+	setUpMovieHandler(c, e)
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", c.Host, c.Port)))
 }
 
-func startUserHandler(c config.Config, e *echo.Echo) {
+func setUpUserHandler(c config.Config, e *echo.Echo) {
 	redis := stores.NewRedisClient(c.Redis)
 	psql := stores.NewPostgresClient(c.Postgres)
 	userHandler := handlers.NewUserHandler(
@@ -35,5 +37,10 @@ func startUserHandler(c config.Config, e *echo.Echo) {
 		c.Gothic,
 	)
 
-	userHandler.RegisterRoutes(e.Group("/user"))
+	userHandler.RegisterRoutes(e.Group("/users"))
+}
+
+func setUpMovieHandler(c config.Config, e *echo.Echo) {
+	movieHandler := handlers.NewMovieHandler(moviedb.NewClient(c.MovieDB))
+	movieHandler.RegisterRoutes(e.Group("/movies"))
 }

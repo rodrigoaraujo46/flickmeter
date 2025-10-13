@@ -9,7 +9,7 @@ import (
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/config"
 )
 
-func NewPostgresClient(c config.PostgresConfig) *pgxpool.Pool {
+func NewPostgresClient(c config.Postgres) *pgxpool.Pool {
 	client, err := pgxpool.New(context.Background(), c.Address)
 	assert.NoError(err, "couldn't connect to pgsql db")
 

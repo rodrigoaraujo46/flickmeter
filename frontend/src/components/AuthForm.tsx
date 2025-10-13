@@ -4,7 +4,7 @@ import { Button } from "./Button";
 function AuthForm() {
     const keep = useRef(false);
     const handleOAuth = (provider: string) => {
-        window.location.href = `/api/user/auth/${provider}?keep=${keep.current}`;
+        window.location.href = `/api/users/auth/${provider}?keep=${keep.current}`;
     };
 
     return (

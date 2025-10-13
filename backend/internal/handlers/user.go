@@ -43,7 +43,7 @@ type userHandler struct {
 	userStore    UserStore
 }
 
-func NewUserHandler(authStore SessionStore, refreshStore RefreshStore, userStore UserStore, gothicConfig config.GothicConfig) userHandler {
+func NewUserHandler(authStore SessionStore, refreshStore RefreshStore, userStore UserStore, gothicConfig config.Gothic) userHandler {
 	oauth.StartOAuth(gothicConfig)
 	return userHandler{
 		sessionStore: authStore,
