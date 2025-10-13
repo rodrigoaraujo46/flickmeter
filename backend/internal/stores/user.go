@@ -3,7 +3,6 @@ package stores
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -60,7 +59,6 @@ func (s userStore) ReadOrCreate(u *user.User, c context.Context) error {
 
 	existing, err := s.getUserByEmailTx(ctx, tx, u.Email)
 	if err != nil && err != pgx.ErrNoRows {
-		fmt.Println("gg")
 		return err
 	}
 	if err == nil {

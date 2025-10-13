@@ -13,20 +13,25 @@ import (
 type Config struct {
 	Host     string
 	Port     string
-	Redis    RedisConfig
-	Postgres PostgresConfig
-	Gothic   GothicConfig
+	Redis    Redis
+	Postgres Postgres
+	Gothic   Gothic
+	MovieDB  MovieDB
 }
 
-type RedisConfig struct {
+type Redis struct {
 	Address string
 }
 
-type PostgresConfig struct {
+type Postgres struct {
 	Address string
 }
 
-type GothicConfig struct {
+type MovieDB struct {
+	Token string
+}
+
+type Gothic struct {
 	Providers      map[string]oAuthProvider
 	CookieStoreKey string
 }
@@ -43,15 +48,18 @@ func MustLoadConfig() Config {
 	return Config{
 		Host: mustLoadEnv("HOST"),
 		Port: mustLoadEnv("PORT"),
-		Redis: RedisConfig{
+		Redis: Redis{
 			Address: mustLoadEnv("REDIS_ADDR"),
 		},
-		Postgres: PostgresConfig{
+		Postgres: Postgres{
 			Address: mustLoadEnv("POSTGRES_ADDR"),
 		},
-		Gothic: GothicConfig{
+		Gothic: Gothic{
 			CookieStoreKey: mustLoadEnv("COOKIE_STORE_KEY"),
 			Providers:      mustLoadProviders(),
+		},
+		MovieDB: MovieDB{
+			Token: mustLoadEnv("MOVIE_DB_TOKEN"),
 		},
 	}
 }
@@ -71,7 +79,7 @@ func mustLoadProviders() map[string]oAuthProvider {
 		config := oAuthProvider{
 			Client:   mustLoadEnv(fmt.Sprintf("%s_CLIENT", strings.ToUpper(name))),
 			Secret:   mustLoadEnv(fmt.Sprintf("%s_SECRET", strings.ToUpper(name))),
-			Callback: fmt.Sprintf("http://localhost:5173/api/user/auth/%s/callback", name),
+			Callback: fmt.Sprintf("http://localhost:5173/api/users/auth/%s/callback", name),
 		}
 		configs[name] = config
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/config"
 )
 
-func StartOAuth(conf config.GothicConfig) {
+func StartOAuth(conf config.Gothic) {
 	gothic.Store = sessions.NewCookieStore([]byte(conf.CookieStoreKey))
 
 	google := conf.Providers["google"]

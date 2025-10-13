@@ -1,11 +1,11 @@
-export interface User {
+type User = {
     id: string;
     username: string;
     avatar_url: string;
-}
+};
 
 async function fetchCurrentUser(): Promise<User | null> {
-    const res = await fetch("/api/user/me", {
+    const res = await fetch("/api/users/me", {
         credentials: "include",
     });
 
@@ -22,7 +22,7 @@ async function fetchCurrentUser(): Promise<User | null> {
 }
 
 async function logout() {
-    const res = await fetch("/api/user/logout", {
+    const res = await fetch("/api/users/logout", {
         method: "POST",
         credentials: "include",
     });
@@ -37,4 +37,4 @@ async function logout() {
     }
 }
 
-export { fetchCurrentUser, logout };
+export { fetchCurrentUser, logout, type User };
