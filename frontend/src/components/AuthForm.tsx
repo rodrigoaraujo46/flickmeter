@@ -18,6 +18,7 @@ function AuthForm() {
 
             <label>
                 <input
+                    className="accent-primary"
                     name="keep-me"
                     type="checkbox"
                     onClick={() => {

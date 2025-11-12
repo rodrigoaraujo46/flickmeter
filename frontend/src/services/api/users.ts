@@ -1,13 +1,11 @@
 type User = {
-    id: string;
+    id: number;
     username: string;
     avatar_url: string;
 };
 
 async function fetchCurrentUser(): Promise<User | null> {
-    const res = await fetch("/api/users/me", {
-        credentials: "include",
-    });
+    const res = await fetch("/api/users/me");
 
     switch (res.status) {
         case 200:
@@ -21,7 +19,7 @@ async function fetchCurrentUser(): Promise<User | null> {
     }
 }
 
-async function logout() {
+async function logout(): Promise<boolean> {
     const res = await fetch("/api/users/logout", {
         method: "POST",
         credentials: "include",
@@ -29,7 +27,7 @@ async function logout() {
 
     switch (res.status) {
         case 200:
-            return;
+            return true;
         case 500:
             throw new Error("Internal Server Error");
         default:

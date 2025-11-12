@@ -5,14 +5,17 @@ export const useCurrentUserQuery = () => {
     const queryClient = useQueryClient();
 
     const userQuery = useQuery({
-        queryKey: ["me"],
+        queryKey: ["users", "me"],
         queryFn: fetchCurrentUser,
     });
 
     const logoutMutation = useMutation({
         mutationFn: logout,
-        onSuccess: () => queryClient.setQueryData(["me"], null),
-        retry: 2,
+        onSuccess: (ok) => {
+            if (ok) {
+                queryClient.resetQueries();
+            }
+        },
     });
 
     return {

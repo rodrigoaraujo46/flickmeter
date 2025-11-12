@@ -3,12 +3,16 @@ package user
 import (
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 type User struct {
-	Email     string `json:"-"`
-	Username  string `json:"username"`
-	AvatarURL string `json:"avatar_url"`
+	Id        uint      `json:"id"`
+	Email     string    `json:"-"`
+	Username  string    `json:"username"`
+	AvatarURL string    `json:"avatar_url"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 func New(email, username, avatar_url string) *User {
@@ -20,7 +24,7 @@ func New(email, username, avatar_url string) *User {
 }
 
 func (u *User) SetRandomUsername() {
-	var adjectives = []string{
+	adjectives := []string{
 		"Swift", "Fast", "Cool", "Clever", "Bright", "Bold", "Lucky", "Chill",
 		"Creative", "Brave", "Happy", "Fierce", "Gentle", "Mighty", "Sly", "Wise",
 		"Nimble", "Sharp", "Witty", "Energetic", "Quick", "Silent", "Jolly",
@@ -38,7 +42,7 @@ func (u *User) SetRandomUsername() {
 		"Valiant", "Vivid", "Wise", "Witty", "Youthful", "Zealous",
 	}
 
-	var animals = []string{
+	animals := []string{
 		"Lion", "Tiger", "Falcon", "Bear", "Wolf", "Panda", "Shark", "Eagle",
 		"Fox", "Hawk", "Panther", "Otter", "Cheetah", "Jaguar", "Dolphin", "Lynx",
 		"Raven", "Stallion", "Buffalo", "Cobra", "Moose", "Badger", "Cougar",

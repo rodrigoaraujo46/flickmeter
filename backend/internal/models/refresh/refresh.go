@@ -8,9 +8,11 @@ import (
 )
 
 type Refresh struct {
-	UUID    string
-	User    user.User
-	Expires time.Time
+	UUID      string
+	User      user.User
+	Expires   time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func New(uuid string, user user.User, keep bool) *Refresh {
@@ -19,7 +21,7 @@ func New(uuid string, user user.User, keep bool) *Refresh {
 		expires = time.Now().Add(720 * time.Hour)
 	}
 
-	return &Refresh{uuid, user, expires}
+	return &Refresh{UUID: uuid, User: user, Expires: expires}
 }
 
 func (r Refresh) Cookie() *http.Cookie {

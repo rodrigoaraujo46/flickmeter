@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -27,20 +28,23 @@ func (s sessionStore) Create(ses session.Session, c context.Context) error {
 		return err
 	}
 
-	s.client.Set(ctx, ses.UUID, json, time.Hour)
-	return nil
+	return s.client.Set(ctx, ses.UUID, json, time.Hour).Err()
 }
 
 var ErrNotFound = errors.New("row not found")
 
-func (s sessionStore) Read(key string, c context.Context) (session.Session, error) {
+func NewErrNotFound(err error) error {
+	return fmt.Errorf("%w: %v", ErrNotFound, err)
+}
+
+func (s sessionStore) ReadAndRefresh(key string, c context.Context) (session.Session, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	res, err := s.client.Get(ctx, key).Result()
+	res, err := s.client.GetEx(ctx, key, time.Hour).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return session.Session{}, ErrNotFound
+			return session.Session{}, NewErrNotFound(err)
 		}
 		return session.Session{}, err
 	}
@@ -57,10 +61,5 @@ func (s sessionStore) Delete(key string, c context.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_, err := s.client.Del(ctx, key).Result()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.client.Del(ctx, key).Err()
 }

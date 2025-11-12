@@ -16,7 +16,7 @@ type Config struct {
 	Redis    Redis
 	Postgres Postgres
 	Gothic   Gothic
-	MovieDB  MovieDB
+	MovieAPI MovieAPI
 }
 
 type Redis struct {
@@ -27,7 +27,7 @@ type Postgres struct {
 	Address string
 }
 
-type MovieDB struct {
+type MovieAPI struct {
 	Token string
 }
 
@@ -58,7 +58,7 @@ func MustLoadConfig() Config {
 			CookieStoreKey: mustLoadEnv("COOKIE_STORE_KEY"),
 			Providers:      mustLoadProviders(),
 		},
-		MovieDB: MovieDB{
+		MovieAPI: MovieAPI{
 			Token: mustLoadEnv("MOVIE_DB_TOKEN"),
 		},
 	}

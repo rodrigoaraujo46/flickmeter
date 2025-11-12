@@ -1,5 +1,5 @@
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { useCurrentUserQuery } from "@/hooks/useCurrentUserQuery";
@@ -18,15 +18,17 @@ import {
     DropdownMenuItem,
 } from "./DropdownMenu";
 import { Skeleton } from "./Skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { LucideCircleUserRound } from "lucide-react";
 
 function Navbar() {
     const [showNav, setShowNav] = useState(false);
-    const lastScrollY = useRef(0);
+    const lastScrollY = useRef(5000);
 
     useEffect(() => {
         const handleScroll = () => {
             setShowNav(
-                window.scrollY < lastScrollY.current || window.scrollY === 0,
+                window.scrollY < lastScrollY.current || window.scrollY <= 0,
             );
             lastScrollY.current = window.scrollY;
         };
@@ -39,7 +41,7 @@ function Navbar() {
 
     return (
         <header
-            className={`sticky top-3 mx-4 mt-3 mb-6 flex h-[5.5rem] min-w-[320px] flex-row items-center rounded-full bg-primary px-8 text-primary-foreground transition-transform delay-200 duration-500 ${showNav ? "translate-y-0" : "-translate-y-full"}`}
+            className={`sticky top-3 z-50 mx-4 mt-3 mb-6 flex h-[5.5rem] min-w-[320px] flex-row items-center rounded-full bg-foreground px-8 text-primary-foreground transition-transform duration-1000 ${showNav ? "translate-y-0" : "-translate-y-[200%]"}`}
         >
             <Link to="/">
                 <p className="translate-y-1 font-extrabold font-logo text-4xl leading-none">
@@ -64,25 +66,30 @@ function UserMenu() {
     if (isLoading) {
         return <Skeleton className="h-12 w-12 rounded-full" />;
     }
+
     if (data) {
         return (
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <button
-                        type="button"
-                        className="cursor-pointer rounded-full"
-                    >
-                        <img
+                <DropdownMenuTrigger>
+                    <Avatar className="h-12 w-12">
+                        <AvatarImage
                             referrerPolicy="no-referrer"
-                            className={`h-12 w-12 rounded-full object-cover`}
                             src={data.avatar_url}
-                            alt="avatar"
+                            alt={data.username}
                         />
-                    </button>
+                        <AvatarFallback
+                            asChild
+                            className="bg-transparent text-background"
+                        >
+                            <LucideCircleUserRound />
+                        </AvatarFallback>
+                    </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild className="h-full w-full">
-                        <button
+                    <DropdownMenuItem asChild>
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-start"
                             onClick={() => {
                                 document.body.style.cursor = "wait";
                                 logoutMutation.mutate(undefined, {
@@ -96,11 +103,9 @@ function UserMenu() {
                                     },
                                 });
                             }}
-                            type="button"
-                            className="cursor-pointer"
                         >
                             Log out
-                        </button>
+                        </Button>
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -108,12 +113,20 @@ function UserMenu() {
     }
 
     return (
-        <Dialog>
-            <DialogTrigger asChild>
+        <AuthDialog
+            trigger={
                 <Button variant="secondary" className="rounded-full">
                     Sign in
                 </Button>
-            </DialogTrigger>
+            }
+        />
+    );
+}
+
+export function AuthDialog({ trigger }: { trigger: React.ReactNode }) {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>{trigger}</DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>Sign Up or Log In</DialogTitle>
