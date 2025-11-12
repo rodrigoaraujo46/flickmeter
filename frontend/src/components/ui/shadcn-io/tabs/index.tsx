@@ -292,4 +292,3 @@ export {
     type TabsContentsProps,
     type TabsContentProps,
 };
-

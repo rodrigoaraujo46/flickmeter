@@ -22,7 +22,7 @@ import (
 
 type SessionStore interface {
 	Create(session session.Session, ctx context.Context) error
-	Read(uuid string, ctx context.Context) (session session.Session, err error)
+	ReadAndRefresh(uuid string, ctx context.Context) (session session.Session, err error)
 	Delete(uuid string, ctx context.Context) error
 }
 
@@ -55,7 +55,7 @@ func NewUserHandler(authStore SessionStore, refreshStore RefreshStore, userStore
 func (h userHandler) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if cookie, err := c.Cookie("session"); err == nil {
-			s, err := h.sessionStore.Read(cookie.Value, c.Request().Context())
+			s, err := h.sessionStore.ReadAndRefresh(cookie.Value, c.Request().Context())
 			if err == nil {
 				c.Set("user", s.User)
 				return next(c)
@@ -73,8 +73,7 @@ func (h userHandler) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		refresh, err := h.refreshStore.Read(cookie.Value, c.Request().Context())
 		if err != nil {
 			if !errors.Is(err, stores.ErrNotFound) {
-				c.Echo().Logger.Error("Failed to read refresh token", err)
-				return echo.ErrInternalServerError.WithInternal(err)
+				return err
 			}
 			return next(c)
 		}
@@ -82,7 +81,6 @@ func (h userHandler) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		ses := session.New(uuid.NewString(), refresh.User)
 		if err := h.sessionStore.Create(*ses, c.Request().Context()); err != nil {
-			c.Echo().Logger.Error("Failed to get create session token", err)
 			return next(c)
 		}
 
@@ -95,7 +93,7 @@ func (h userHandler) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 func (h userHandler) RegisterRoutes(g *echo.Group) {
 	g.GET("/auth/:provider", h.getProvider)
 	g.GET("/auth/:provider/callback", h.getCallback)
-	g.GET("/me", h.getMe, h.AuthMiddleware)
+	g.GET("/me", h.getMe)
 	g.POST("/logout", h.logout)
 }
 
@@ -152,10 +150,10 @@ func (h userHandler) getCallback(c echo.Context) error {
 func (h userHandler) getMe(c echo.Context) error {
 	user := c.Get("user")
 	if user == nil {
-		return echo.ErrUnauthorized.WithInternal(errors.New("no user found"))
+		return echo.NewHTTPError(http.StatusUnauthorized, "no user found")
 	}
 
-	return c.JSON(http.StatusOK, c.Get("user"))
+	return c.JSON(http.StatusOK, user)
 }
 
 func (h userHandler) logout(c echo.Context) error {
@@ -195,7 +193,7 @@ func (h userHandler) logout(c echo.Context) error {
 	}
 
 	if errs != nil {
-		return echo.ErrInternalServerError.WithInternal(errs)
+		return errs
 	}
 
 	return c.NoContent(http.StatusOK)

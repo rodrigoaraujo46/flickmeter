@@ -7,7 +7,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/config"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/handlers"
-	"github.com/rodrigoaraujo46/flickmeter/backend/internal/moviedb"
+	"github.com/rodrigoaraujo46/flickmeter/backend/internal/movieapi"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/stores"
 )
 
@@ -22,25 +22,27 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	setUpUserHandler(c, e)
-	setUpMovieHandler(c, e)
+	setUpHandlers(c, e)
 	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%s", c.Host, c.Port)))
 }
 
-func setUpUserHandler(c config.Config, e *echo.Echo) {
-	redis := stores.NewRedisClient(c.Redis)
+func setUpHandlers(c config.Config, e *echo.Echo) {
 	psql := stores.NewPostgresClient(c.Postgres)
+	redis := stores.NewRedisClient(c.Redis)
+
 	userHandler := handlers.NewUserHandler(
-		*stores.NewSessionStore(*redis),
-		*stores.NewRefreshStore(psql),
-		*stores.NewUserStore(psql),
+		stores.NewSessionStore(*redis),
+		stores.NewRefreshStore(psql),
+		stores.NewUserStore(psql),
 		c.Gothic,
 	)
+	movieHandler := handlers.NewMovieHandler(
+		movieapi.NewClient(c.MovieAPI),
+		stores.NewMovieStore(psql),
+		stores.NewReviewStore(psql),
+	)
 
+	e.Use(userHandler.AuthMiddleware)
 	userHandler.RegisterRoutes(e.Group("/users"))
-}
-
-func setUpMovieHandler(c config.Config, e *echo.Echo) {
-	movieHandler := handlers.NewMovieHandler(moviedb.NewClient(c.MovieDB))
 	movieHandler.RegisterRoutes(e.Group("/movies"))
 }

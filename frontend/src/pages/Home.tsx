@@ -1,5 +1,5 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Suspense } from "react";
+import { useQuery } from "@tanstack/react-query";
+import React from "react";
 import { Carousel, CarouselItem } from "@/components/Carousel";
 import MovieCard from "@/components/MovieCard";
 import { Skeleton } from "@/components/Skeleton";
@@ -10,7 +10,7 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/shadcn-io/tabs";
-import { TrendingMovies } from "@/services/api/movies";
+import { fetchTrendingMovies, type Movie } from "@/services/api/movies";
 
 function Home() {
     return (
@@ -21,38 +21,25 @@ function Home() {
 }
 
 function TrendingTabbed() {
-    const skeletons = Array.from({ length: 8 }, () => (
-        <CarouselItem key={crypto.randomUUID()}>
-            <Skeleton className="h-full w-40" />
-        </CarouselItem>
-    ));
-
+    const [activeTab, setActiveTab] = React.useState("Daily");
     return (
-        <Tabs className="w-full" defaultValue="Daily">
+        <Tabs onValueChange={setActiveTab} value={activeTab} className="w-full">
             <div className="mb-3 flex flex-row items-center gap-5">
                 <h2 className="font-bold text-4xl">Trending</h2>
                 <TabsList>
-                    <TabsTrigger className="cursor-pointer" value="Daily">
-                        Daily
-                    </TabsTrigger>
-                    <TabsTrigger className="cursor-pointer" value="Weekly">
-                        Weekly
-                    </TabsTrigger>
+                    <TabsTrigger value="Daily">Daily</TabsTrigger>
+                    <TabsTrigger value="Weekly">Weekly</TabsTrigger>
                 </TabsList>
             </div>
             <TabsContents>
-                <TabsContent value="Daily">
+                <TabsContent inert={activeTab !== "Daily"} value="Daily">
                     <Carousel>
-                        <Suspense fallback={skeletons}>
-                            <Trending />
-                        </Suspense>
+                        <Trending />
                     </Carousel>
                 </TabsContent>
-                <TabsContent value="Weekly">
+                <TabsContent inert={activeTab !== "Weekly"} value="Weekly">
                     <Carousel>
-                        <Suspense fallback={skeletons}>
-                            <Trending duration="weekly" />
-                        </Suspense>
+                        <Trending duration="weekly" />
                     </Carousel>
                 </TabsContent>
             </TabsContents>
@@ -61,16 +48,27 @@ function TrendingTabbed() {
 }
 
 function Trending({ duration = "daily" }: { duration?: "daily" | "weekly" }) {
-    const { data } = useSuspenseQuery({
-        queryKey: ["trenging", duration],
-        queryFn: () => TrendingMovies(duration === "weekly"),
+    const { data, isLoading } = useQuery({
+        queryKey: ["trending", duration],
+        queryFn: () => fetchTrendingMovies(duration === "weekly"),
     });
 
-    return data.map((movie) => (
-        <CarouselItem key={movie.id}>
-            <MovieCard movie={movie} />
-        </CarouselItem>
-    ));
+    return (
+        <>
+            {(isLoading ? Array.from<Movie>({ length: 20 }) : data)?.map(
+                (movie, i) =>
+                    isLoading ? (
+                        <CarouselItem key={`${`${i}`}`}>
+                            <Skeleton className="aspect-[2/3] h-full rounded-lg" />
+                        </CarouselItem>
+                    ) : (
+                        <CarouselItem key={movie.id}>
+                            <MovieCard movie={movie} />
+                        </CarouselItem>
+                    ),
+            )}
+        </>
+    );
 }
 
 export default Home;

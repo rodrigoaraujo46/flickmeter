@@ -3,5 +3,14 @@ main {
     width: 100%;
     min-width: 320px;
     margin: 0 auto;
-    padding: 0 50px;
+    padding: 0 clamp(10px, 3%, 5%);
+}
+
+button {
+    cursor: pointer;
+}
+
+body,
+html {
+    overflow-x: hidden;
 }

@@ -1,0 +1,8 @@
+#!/usr/bin/env nu
+
+tmux new-window -dn frontend 'cd frontend; nvim .; exec $env.SHELL'
+tmux new-window -dn scratch
+tmux new-window -n lazydocker 'lazydocker; exec $env.SHELL'
+cd backend
+nvim .
+clear

@@ -600,4 +600,3 @@ export {
     type MotionHighlightProps,
     type MotionHighlightItemProps,
 };
-
