@@ -3,11 +3,11 @@ import { LucideEdit } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
 import { fetchMyReview, fetchReviews } from "@/services/api/movies";
-import { Button } from "./Button";
 import { AuthDialog } from "./Navbar";
 import { ReviewCard } from "./ReviewCard";
 import { NewReviewDialog } from "./ReviewDialog";
 import { Skeleton } from "./Skeleton";
+import { Button } from "./ui/button";
 import {
     Pagination,
     PaginationContent,

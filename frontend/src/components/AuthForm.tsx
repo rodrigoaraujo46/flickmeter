@@ -1,11 +1,15 @@
-import { useRef } from "react";
-import { Button } from "./Button";
+import { useId, useRef } from "react";
+import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
+import { Label } from "./ui/label";
 
 function AuthForm() {
     const keep = useRef(false);
     const handleOAuth = (provider: string) => {
         window.location.href = `/api/users/auth/${provider}?keep=${keep.current}`;
     };
+
+    const checkbox = useId();
 
     return (
         <>
@@ -15,18 +19,15 @@ function AuthForm() {
             <Button onClick={() => handleOAuth("github")} variant="outline">
                 Github
             </Button>
-
-            <label>
-                <input
-                    className="accent-primary"
-                    name="keep-me"
-                    type="checkbox"
+            <div className="flex items-center gap-3">
+                <Checkbox
+                    id={checkbox}
                     onClick={() => {
                         keep.current = !keep.current;
                     }}
                 />{" "}
-                Remember Me
-            </label>
+                <Label htmlFor={checkbox}>Remember Me</Label>
+            </div>
         </>
     );
 }

@@ -16,6 +16,7 @@ type MovieClient interface {
 	GetTrending(ctx context.Context, weekly bool) (movie.Movies, error)
 	GetMovie(ctx context.Context, id uint) (movie.Movie, error)
 	GetVideos(ctx context.Context, id uint) (movie.Videos, error)
+	Search(ctx context.Context, query string) (movie.Movies, error)
 }
 
 type MovieStore interface {
@@ -52,6 +53,7 @@ func (h movieHandler) RegisterRoutes(g *echo.Group) {
 	g.POST("/:id/reviews", h.postReview)
 	g.PATCH("/:id/reviews/:reviewid", h.patchReview)
 	g.DELETE("/:id/reviews/:reviewid", h.deleteReview)
+	g.GET("/search", h.searchMovies)
 }
 
 func (h movieHandler) getTrending(c echo.Context) error {
@@ -241,4 +243,13 @@ func (h movieHandler) deleteReview(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (h movieHandler) searchMovies(c echo.Context) error {
+	movies, err := h.client.Search(c.Request().Context(), c.QueryParam("query"))
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, movies)
 }

@@ -38,6 +38,10 @@ export default function VideoGallery({ movieId }: { movieId: number }) {
         return <Skeleton className="h-full w-full rounded-lg" />;
     }
 
+    if (!videos) {
+        return <Skeleton className="h-full w-full rounded-lg" />;
+    }
+
     const currentVideo = videos[currentVideoI];
 
     return (

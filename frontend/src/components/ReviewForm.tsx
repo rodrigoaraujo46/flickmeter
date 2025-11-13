@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Controller, type SubmitHandler, useForm } from "react-hook-form";
 import { type Review, saveReview } from "@/services/api/movies";
-import { Button } from "./Button";
+import { Button } from "./ui/button";
 import {
     Field,
     FieldError,

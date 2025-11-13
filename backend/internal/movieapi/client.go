@@ -169,3 +169,46 @@ func (c client) GetVideos(ctx context.Context, id uint) (movie.Videos, error) {
 
 	return videoRes.Results, nil
 }
+
+func (c client) Search(ctx context.Context, query string) (movie.Movies, error) {
+	url := fmt.Sprintf("https://api.themoviedb.org/3/search/movie?query=%s", query)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		err := res.Body.Close()
+		assert.NoError(err, "movieAPI.Search")
+	}()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		var jsonMap map[string]any
+		if err := json.Unmarshal(body, &jsonMap); err != nil {
+			return nil, err
+		}
+		return nil, echo.NewHTTPError(res.StatusCode, jsonMap["status_message"])
+	}
+
+	var movieRes struct {
+		Results movie.Movies `json:"results"`
+	}
+
+	err = json.Unmarshal(body, &movieRes)
+	if err != nil {
+		return nil, err
+	}
+
+	return movieRes.Results, nil
+}
