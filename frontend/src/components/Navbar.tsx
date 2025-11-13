@@ -54,10 +54,8 @@ function Navbar() {
                     FLICKMETER
                 </p>
             </Link>
-            <div className="mx-auto">
+            <div className="ml-auto flex h-full flex-row items-center justify-center gap-4 text-xs">
                 <MovieSearch />
-            </div>
-            <div className="flex h-full flex-row items-center justify-center text-xs">
                 <UserMenu />
             </div>
         </header>
@@ -107,7 +105,7 @@ function MovieSearch() {
                         setOpen(true);
                         setQuery(e.target.value);
                     }}
-                    className="rounded-full bg-background pl-10 text-foreground"
+                    className="rounded-full bg-popover pl-10 text-popover-foreground"
                 />
             </div>
             {searchResults && searchResults.length > 0 && (

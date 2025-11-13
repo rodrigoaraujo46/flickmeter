@@ -171,12 +171,15 @@ func (c client) GetVideos(ctx context.Context, id uint) (movie.Videos, error) {
 }
 
 func (c client) Search(ctx context.Context, query string) (movie.Movies, error) {
-	url := fmt.Sprintf("https://api.themoviedb.org/3/search/movie?query=%s", query)
-
+	const url = "https://api.themoviedb.org/3/search/movie"
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	q := req.URL.Query()
+	q.Set("query", query)
+	req.URL.RawQuery = q.Encode()
 
 	res, err := c.http.Do(req)
 	if err != nil {

@@ -3,7 +3,7 @@ main {
     width: 100%;
     min-width: 320px;
     margin: 0 auto;
-    padding: 0 clamp(10px, 3%, 5%);
+    padding: 0 clamp(10px, 3%, 5%) 10px clamp(10px, 3%, 5%);
 }
 
 button {
