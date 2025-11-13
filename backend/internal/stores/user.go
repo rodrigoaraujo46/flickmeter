@@ -41,13 +41,13 @@ func (s userStore) Read(email string, c context.Context) (user.User, error) {
 	return u, nil
 }
 
-func (s userStore) ReadOrCreate(u *user.User, c context.Context) error {
+func (s userStore) ReadOrCreate(u *user.User, c context.Context) (isNew bool, err error) {
 	ctx, cancel := context.WithTimeout(c, 3*time.Second)
 	defer cancel()
 
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	defer func() {
@@ -56,18 +56,25 @@ func (s userStore) ReadOrCreate(u *user.User, c context.Context) error {
 
 	existing, err := s.getUserByEmailTx(ctx, tx, u.Email)
 	if err != nil && err != pgx.ErrNoRows {
-		return err
+		return false, err
 	}
 	if err == nil {
+		if err := tx.Commit(ctx); err != nil {
+			return false, err
+		}
 		*u = existing
-		return tx.Commit(ctx)
+		return false, nil
 	}
 
 	if err := s.tryInsertUserTx(ctx, tx, u); err != nil {
-		return err
+		return false, err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (s userStore) getUserByEmailTx(ctx context.Context, tx pgx.Tx, email string) (user.User, error) {

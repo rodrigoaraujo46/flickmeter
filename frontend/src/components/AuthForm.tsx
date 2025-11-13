@@ -6,7 +6,8 @@ import { Label } from "./ui/label";
 function AuthForm() {
     const keep = useRef(false);
     const handleOAuth = (provider: string) => {
-        window.location.href = `/api/users/auth/${provider}?keep=${keep.current}`;
+        const redirect = encodeURIComponent(window.location.href);
+        window.location.href = `/api/users/auth/${provider}?keep=${keep.current}&redirect=${redirect}`;
     };
 
     const checkbox = useId();
