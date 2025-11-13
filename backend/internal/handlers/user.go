@@ -5,8 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -33,7 +34,7 @@ type RefreshStore interface {
 }
 
 type UserStore interface {
-	ReadOrCreate(user *user.User, ctx context.Context) error
+	ReadOrCreate(user *user.User, ctx context.Context) (isNew bool, err error)
 	Read(id string, ctx context.Context) (user user.User, err error)
 }
 
@@ -100,21 +101,31 @@ func (h userHandler) RegisterRoutes(g *echo.Group) {
 func (h userHandler) getProvider(c echo.Context) error {
 	ctx := context.WithValue(context.Background(), gothic.ProviderParamKey, c.Param("provider"))
 
+	params := c.QueryParams()
 	nonce := base64.URLEncoding.EncodeToString([]byte(rand.Text()))
-	state := fmt.Sprintf("%s_%s", c.QueryParam("keep"), nonce)
+	params.Set("nonce", nonce)
+	state := url.QueryEscape(params.Encode())
 
-	req := c.Request()
-	q := req.URL.Query()
-	q.Add("state", state)
-	req.URL.RawQuery = q.Encode()
+	req := c.Request().Clone(ctx)
+	req.URL.RawQuery = url.Values{"state": []string{state}}.Encode()
 
-	gothic.BeginAuthHandler(c.Response(), c.Request().WithContext(ctx))
+	gothic.BeginAuthHandler(c.Response(), req)
 
 	return nil
 }
 
 func (h userHandler) getCallback(c echo.Context) error {
-	const redirectURL = "http://localhost:5173/"
+	decodedState, err := url.QueryUnescape(c.QueryParam("state"))
+	if err != nil {
+		return err
+	}
+
+	values, err := url.ParseQuery(decodedState)
+	if err != nil {
+		return err
+	}
+	redirectURL := values.Get("redirect")
+
 	gothUser, err := gothic.CompleteUserAuth(c.Response(), c.Request())
 	if err != nil {
 		return c.Redirect(http.StatusSeeOther, redirectURL)
@@ -125,7 +136,7 @@ func (h userHandler) getCallback(c echo.Context) error {
 	}
 
 	u := user.New(gothUser.Email, gothUser.NickName, gothUser.AvatarURL)
-	if err := h.userStore.ReadOrCreate(u, c.Request().Context()); err != nil {
+	if _, err = h.userStore.ReadOrCreate(u, c.Request().Context()); err != nil {
 		return c.Redirect(http.StatusSeeOther, redirectURL)
 	}
 
@@ -135,8 +146,10 @@ func (h userHandler) getCallback(c echo.Context) error {
 	}
 	c.SetCookie(ses.Cookie())
 
-	state := c.QueryParam("state")
-	keep := strings.SplitN(state, "_", 2)[0] == "true"
+	keep, err := strconv.ParseBool(values.Get("keep"))
+	if err != nil {
+		return err
+	}
 
 	ref := refresh.New(uuid.NewString(), *u, keep)
 	if err := h.refreshStore.Create(*ref, c.Request().Context()); err != nil {

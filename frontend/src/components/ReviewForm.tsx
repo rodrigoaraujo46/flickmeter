@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Controller, type SubmitHandler, useForm } from "react-hook-form";
-import { type Review, saveReview } from "@/services/api/movies";
+import { type Review, saveReview, fetchMovie } from "@/services/api/movies";
 import { Button } from "./ui/button";
 import {
     Field,
@@ -48,6 +48,10 @@ export default function ReviewForm({
             saveReview(movieId, review?.id ?? 0, data),
         onSuccess: () => {
             reset();
+            queryClient.invalidateQueries({
+                queryKey: ["movies", movieId],
+            });
+
             queryClient.invalidateQueries({
                 queryKey: ["movies", movieId, "reviews", "me"],
             });

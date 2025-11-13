@@ -117,7 +117,7 @@ async function fetchVideos(id: number): Promise<Video[]> {
     return (await res.json()) as Video[];
 }
 
-async function fetchMovie(id: string): Promise<Movie> {
+async function fetchMovie(id: number): Promise<Movie> {
     const res = await fetch(`/api/movies/${id}`);
     if (!res.ok) {
         const error = await res.json();

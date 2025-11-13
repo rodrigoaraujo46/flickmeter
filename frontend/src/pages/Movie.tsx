@@ -26,8 +26,8 @@ function Movie() {
         isPending,
         error,
     } = useQuery({
-        queryKey: ["movies", id],
-        queryFn: () => fetchMovie(id),
+        queryKey: ["movies", Number(id)],
+        queryFn: () => fetchMovie(Number(id)),
         throwOnError: true,
     });
 

@@ -18,8 +18,7 @@ func main() {
 	e.Debug = true
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:     []string{"http://web:5173", "http://web:4173"},
-		AllowCredentials: true,
+		AllowOrigins: []string{"http://web:5173", "http://web:4173"}, AllowCredentials: true,
 	}))
 
 	setUpHandlers(c, e)
