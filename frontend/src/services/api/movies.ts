@@ -95,6 +95,17 @@ async function fetchTrendingMovies(weekly: boolean): Promise<Movie[]> {
     return (await res.json()) as Movie[];
 }
 
+async function searchMovies(query: string): Promise<Movie[]> {
+    const res = await fetch(`/api/movies/search?query=${query}`);
+    if (!res.ok) {
+        const error = await res.json();
+        error.cause = res.status;
+        throw error;
+    }
+
+    return (await res.json()) as Movie[];
+}
+
 async function fetchVideos(id: number): Promise<Video[]> {
     const res = await fetch(`/api/movies/${id}/videos`);
     if (!res.ok) {
@@ -178,6 +189,7 @@ export {
     fetchMyReview,
     fetchReviews,
     fetchVideos,
+    searchMovies,
     fetchMovie,
     fetchTrendingMovies,
     type Review,

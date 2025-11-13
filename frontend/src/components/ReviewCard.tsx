@@ -1,8 +1,8 @@
 import type { Review } from "@/services/api/movies";
-import { Button } from "./Button";
 import { getRatingColor } from "./helpers";
 import { ReviewDialog } from "./ReviewDialog";
 import { Avatar, AvatarImage } from "./ui/avatar";
+import { Button } from "./ui/button";
 
 export function ReviewCard({ review }: { review: Review }) {
     return (

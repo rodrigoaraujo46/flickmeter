@@ -1,10 +1,13 @@
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
-import React, { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { LucideCircleUserRound, LucideSearch } from "lucide-react";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { useCurrentUserQuery } from "@/hooks/useCurrentUserQuery";
+import { searchMovies } from "@/services/api/movies";
 import AuthForm from "./AuthForm";
-import { Button } from "./Button";
 import {
     Dialog,
     DialogContent,
@@ -17,9 +20,12 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from "./DropdownMenu";
+import MoviePoster from "./MoviePoster";
 import { Skeleton } from "./Skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { LucideCircleUserRound } from "lucide-react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Item, ItemContent, ItemGroup, ItemSeparator } from "./ui/item";
 
 function Navbar() {
     const [showNav, setShowNav] = useState(false);
@@ -48,10 +54,99 @@ function Navbar() {
                     FLICKMETER
                 </p>
             </Link>
-            <div className="ml-auto flex h-full flex-row items-center justify-center text-xs">
+            <div className="mx-auto">
+                <MovieSearch />
+            </div>
+            <div className="flex h-full flex-row items-center justify-center text-xs">
                 <UserMenu />
             </div>
         </header>
+    );
+}
+
+function MovieSearch() {
+    const [query, setQuery] = useState("");
+    const [open, setOpen] = useState(false);
+    const [debouncedQuery, setDebouncedQuery] = useState("");
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedQuery(query), 300);
+        return () => clearTimeout(timer);
+    }, [query]);
+
+    const { data: searchResults } = useQuery({
+        queryKey: ["movies", "search", debouncedQuery],
+        queryFn: () => searchMovies(debouncedQuery),
+        enabled: !!debouncedQuery,
+    });
+
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        function handleClickOutside(e: MouseEvent) {
+            if (ref.current && !ref.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    return (
+        <div className="relative w-[30rem]">
+            <div className="relative">
+                <LucideSearch
+                    size={14}
+                    className="-translate-y-[55%] absolute top-1/2 left-3 text-muted-foreground"
+                />
+                <Input
+                    type="text"
+                    placeholder="Search movies..."
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={(e) => {
+                        setOpen(true);
+                        setQuery(e.target.value);
+                    }}
+                    className="rounded-full bg-background pl-10 text-foreground"
+                />
+            </div>
+            {searchResults && searchResults.length > 0 && (
+                <ItemGroup
+                    ref={ref}
+                    onClick={() => setOpen(false)}
+                    onBlur={(e) => {
+                        if (
+                            !e.currentTarget.contains(e.relatedTarget as Node)
+                        ) {
+                            setOpen(false);
+                        }
+                    }}
+                    className={`${open ? "visible" : "invisible"} absolute top-full z-20 mt-2 max-h-[35rem] w-full overflow-auto rounded-lg bg-popover text-popover-foreground shadow-md outline-0 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50`}
+                >
+                    {searchResults.map((movie, i) => (
+                        <>
+                            {i > 0 && <ItemSeparator />}
+                            <Item
+                                className="m-[2px] p-1 focus-within:ring-[3px] focus-within:ring-ring/50 focus-visible:border-ring"
+                                key={movie.id}
+                            >
+                                <ItemContent>
+                                    <Link
+                                        className="flex h-24 flex-row items-center gap-3 rounded outline-0"
+                                        to={`/movies/${movie.id}`}
+                                    >
+                                        <MoviePoster movie={movie} />
+                                        <p className="font-semibold text-lg">
+                                            {movie.title}
+                                        </p>
+                                    </Link>
+                                </ItemContent>
+                            </Item>
+                        </>
+                    ))}
+                </ItemGroup>
+            )}
+        </div>
     );
 }
 

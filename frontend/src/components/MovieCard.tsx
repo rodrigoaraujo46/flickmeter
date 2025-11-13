@@ -15,7 +15,7 @@ function MovieCard({ movie, className }: Props) {
     return (
         <Link
             className={cn(
-                "group relative block h-full w-full overflow-hidden rounded-lg",
+                "group relative block h-full w-full overflow-hidden rounded-lg outline-0 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 className,
             )}
             to={`/movies/${movie.id}`}

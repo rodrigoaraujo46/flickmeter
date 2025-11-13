@@ -4,7 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useCurrentUserQuery } from "@/hooks/useCurrentUserQuery";
 import { deleteReview, type Review } from "@/services/api/movies";
-import { Button } from "./Button";
 import {
     Dialog,
     DialogContent,
@@ -15,6 +14,7 @@ import {
 import { getRatingColor } from "./helpers";
 import ReviewForm from "./ReviewForm";
 import { Avatar, AvatarImage } from "./ui/avatar";
+import { Button } from "./ui/button";
 
 export function ReviewDialog({ review }: { review: Review }) {
     const [open, setOpen] = useState(false);
