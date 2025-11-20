@@ -11,16 +11,23 @@ import (
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/models/session"
 )
 
+var ErrNotFound = errors.New("row not found")
+
+func NewErrNotFound(err error) error {
+	return fmt.Errorf("%w: %v", ErrNotFound, err)
+}
+
 type sessionStore struct {
-	client redis.Client
+	client  redis.Client
+	timeout time.Duration
 }
 
 func NewSessionStore(client redis.Client) *sessionStore {
-	return &sessionStore{client}
+	return &sessionStore{client, time.Second}
 }
 
-func (s sessionStore) Create(ses session.Session, c context.Context) error {
-	ctx, cancel := context.WithTimeout(c, 1*time.Second)
+func (s sessionStore) Create(c context.Context, ses session.Session) error {
+	ctx, cancel := context.WithTimeout(c, s.timeout)
 	defer cancel()
 
 	json, err := json.Marshal(ses)
@@ -31,14 +38,8 @@ func (s sessionStore) Create(ses session.Session, c context.Context) error {
 	return s.client.Set(ctx, ses.UUID, json, time.Hour).Err()
 }
 
-var ErrNotFound = errors.New("row not found")
-
-func NewErrNotFound(err error) error {
-	return fmt.Errorf("%w: %v", ErrNotFound, err)
-}
-
-func (s sessionStore) ReadAndRefresh(key string, c context.Context) (session.Session, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (s sessionStore) ReadAndRefresh(c context.Context, key string) (session.Session, error) {
+	ctx, cancel := context.WithTimeout(c, s.timeout)
 	defer cancel()
 
 	res, err := s.client.GetEx(ctx, key, time.Hour).Result()
@@ -57,8 +58,8 @@ func (s sessionStore) ReadAndRefresh(key string, c context.Context) (session.Ses
 	return ses, nil
 }
 
-func (s sessionStore) Delete(key string, c context.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+func (s sessionStore) Delete(c context.Context, key string) error {
+	ctx, cancel := context.WithTimeout(c, s.timeout)
 	defer cancel()
 
 	return s.client.Del(ctx, key).Err()

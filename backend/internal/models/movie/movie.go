@@ -1,12 +1,12 @@
 package movie
 
 type Genre struct {
-	Id   uint   `json:"id"`
+	Id   int32  `json:"id"`
 	Name string `json:"name"`
 }
 
 type ProductionCompany struct {
-	Id            uint   `json:"id"`
+	Id            int32  `json:"id"`
 	LogoPath      string `json:"logo_path"`
 	Name          string `json:"name"`
 	OriginCountry string `json:"origin_country"`
@@ -24,7 +24,7 @@ type SpokenLanguage struct {
 }
 
 type BelongsToCollection struct {
-	Id           uint   `json:"id"`
+	Id           int32  `json:"id"`
 	Name         string `json:"name"`
 	PosterPath   string `json:"poster_path"`
 	BackdropPath string `json:"backdrop_path"`
@@ -34,10 +34,10 @@ type Movie struct {
 	Adult               bool                 `json:"adult"`
 	BackdropPath        string               `json:"backdrop_path"`
 	BelongsToCollection *BelongsToCollection `json:"belongs_to_collection,omitempty"`
-	Budget              uint                 `json:"budget"`
+	Budget              int32                `json:"budget"`
 	Genres              []Genre              `json:"genres,omitempty"`
 	Homepage            string               `json:"homepage"`
-	Id                  uint                 `json:"id"`
+	Id                  int32                `json:"id"`
 	IMDBId              string               `json:"imdb_id"`
 	OriginalLanguage    string               `json:"original_language"`
 	OriginalTitle       string               `json:"original_title"`
@@ -47,15 +47,15 @@ type Movie struct {
 	ProductionCompanies []ProductionCompany  `json:"production_companies,omitempty"`
 	ProductionCountries []ProductionCountry  `json:"production_countries,omitempty"`
 	ReleaseDate         string               `json:"release_date"`
-	Revenue             uint                 `json:"revenue"`
-	Runtime             uint                 `json:"runtime"`
+	Revenue             int32                `json:"revenue"`
+	Runtime             int32                `json:"runtime"`
 	SpokenLanguages     []SpokenLanguage     `json:"spoken_languages,omitempty"`
 	Status              string               `json:"status"`
 	Tagline             string               `json:"tagline"`
 	Title               string               `json:"title"`
 	Video               bool                 `json:"video"`
 	VoteAverage         float64              `json:"vote_average"`
-	VoteCount           uint                 `json:"vote_count"`
+	VoteCount           int32                `json:"vote_count"`
 }
 
 type Movies []Movie

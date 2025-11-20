@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
@@ -18,31 +19,31 @@ import (
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/models/session"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/models/user"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/oauth"
-	"github.com/rodrigoaraujo46/flickmeter/backend/internal/stores"
 )
 
-type SessionStore interface {
-	Create(session session.Session, ctx context.Context) error
-	ReadAndRefresh(uuid string, ctx context.Context) (session session.Session, err error)
-	Delete(uuid string, ctx context.Context) error
-}
+type (
+	SessionStore interface {
+		Create(ctx context.Context, session session.Session) error
+		ReadAndRefresh(ctx context.Context, uuid string) (session session.Session, err error)
+		Delete(ctx context.Context, uuid string) error
+	}
 
-type RefreshStore interface {
-	Create(refreshToken refresh.Refresh, ctx context.Context) error
-	Read(uuid string, ctx context.Context) (refresh.Refresh, error)
-	Delete(uuid string, ctx context.Context) error
-}
+	RefreshStore interface {
+		Create(ctx context.Context, token refresh.Refresh) error
+		Read(ctx context.Context, uuid uuid.UUID) (refresh.Refresh, error)
+		Delete(ctx context.Context, uuid uuid.UUID) error
+	}
 
-type UserStore interface {
-	ReadOrCreate(user *user.User, ctx context.Context) (isNew bool, err error)
-	Read(id string, ctx context.Context) (user user.User, err error)
-}
+	UserStore interface {
+		ReadOrCreate(ctx context.Context, user user.User) (u user.User, isNew bool, err error)
+	}
 
-type userHandler struct {
-	sessionStore SessionStore
-	refreshStore RefreshStore
-	userStore    UserStore
-}
+	userHandler struct {
+		sessionStore SessionStore
+		refreshStore RefreshStore
+		userStore    UserStore
+	}
+)
 
 func NewUserHandler(authStore SessionStore, refreshStore RefreshStore, userStore UserStore, gothicConfig config.Gothic) userHandler {
 	oauth.StartOAuth(gothicConfig)
@@ -53,49 +54,79 @@ func NewUserHandler(authStore SessionStore, refreshStore RefreshStore, userStore
 	}
 }
 
-func (h userHandler) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+func (h userHandler) RegisterRoutes(g *echo.Group, protection echo.MiddlewareFunc) {
+	g.GET("/auth/:provider", h.getProvider)
+	g.GET("/auth/:provider/callback", h.getCallback)
+	g.GET("/me", h.getMe, protection)
+	g.POST("/logout", h.logout, protection)
+}
+
+func (h userHandler) getUserFromSession(c echo.Context) (u user.User, err error) {
+	cookie, err := c.Cookie("session")
+	if err := cmp.Or(err, cookie.Valid()); err != nil {
+		return u, err
+	}
+
+	session, err := h.sessionStore.ReadAndRefresh(c.Request().Context(), cookie.Value)
+	if err != nil {
+		return u, err
+	}
+
+	return session.User, nil
+}
+
+func (h userHandler) getUserFromRefresh(c echo.Context) (u user.User, err error) {
+	cookie, err := c.Cookie("refresh")
+	if err := cmp.Or(err, cookie.Valid()); err != nil {
+		return u, err
+	}
+
+	cookieUUID, err := uuid.Parse(cookie.Value)
+	if err != nil {
+		return u, err
+	}
+
+	refresh, err := h.refreshStore.Read(c.Request().Context(), cookieUUID)
+	if err != nil {
+		return u, err
+	}
+
+	return refresh.User, nil
+}
+
+func (h userHandler) Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if cookie, err := c.Cookie("session"); err == nil {
-			s, err := h.sessionStore.ReadAndRefresh(cookie.Value, c.Request().Context())
-			if err == nil {
-				c.Set("user", s.User)
-				return next(c)
-			}
-			if !errors.Is(err, stores.ErrNotFound) {
-				c.Echo().Logger.Error("Failed read session token ", err)
-			}
+		u, err := h.getUserFromSession(c)
+		if err == nil {
+			c.Set("user", u)
+			return next(c)
 		}
 
-		cookie, err := c.Cookie("refresh")
+		u, err = h.getUserFromRefresh(c)
 		if err != nil {
 			return next(c)
 		}
+		c.Set("user", u)
 
-		refresh, err := h.refreshStore.Read(cookie.Value, c.Request().Context())
-		if err != nil {
-			if !errors.Is(err, stores.ErrNotFound) {
-				return err
-			}
-			return next(c)
+		ses := session.New(uuid.NewString(), u)
+		if h.sessionStore.Create(c.Request().Context(), *ses) != nil {
+			c.SetCookie(ses.Cookie())
 		}
-		c.Set("user", refresh.User)
-
-		ses := session.New(uuid.NewString(), refresh.User)
-		if err := h.sessionStore.Create(*ses, c.Request().Context()); err != nil {
-			return next(c)
-		}
-
-		c.SetCookie(ses.Cookie())
 
 		return next(c)
 	}
 }
 
-func (h userHandler) RegisterRoutes(g *echo.Group) {
-	g.GET("/auth/:provider", h.getProvider)
-	g.GET("/auth/:provider/callback", h.getCallback)
-	g.GET("/me", h.getMe)
-	g.POST("/logout", h.logout)
+func (h userHandler) Protection(next echo.HandlerFunc) echo.HandlerFunc {
+	return h.Authentication(
+		func(c echo.Context) error {
+			if _, ok := c.Get("user").(user.User); !ok {
+				return echo.ErrUnauthorized.SetInternal(
+					errors.New("Protection: no user in context"))
+			}
+			return next(c)
+		},
+	)
 }
 
 func (h userHandler) getProvider(c echo.Context) error {
@@ -135,13 +166,14 @@ func (h userHandler) getCallback(c echo.Context) error {
 		gothUser.NickName = ""
 	}
 
-	u := user.New(gothUser.Email, gothUser.NickName, gothUser.AvatarURL)
-	if _, err = h.userStore.ReadOrCreate(u, c.Request().Context()); err != nil {
+	tmpUser := *user.New(gothUser.Email, gothUser.NickName, gothUser.AvatarURL)
+	u, _, err := h.userStore.ReadOrCreate(c.Request().Context(), tmpUser)
+	if err != nil {
 		return c.Redirect(http.StatusSeeOther, redirectURL)
 	}
 
-	ses := session.New(uuid.NewString(), *u)
-	if err := h.sessionStore.Create(*ses, c.Request().Context()); err != nil {
+	ses := *session.New(uuid.NewString(), u)
+	if err := h.sessionStore.Create(c.Request().Context(), ses); err != nil {
 		return c.Redirect(http.StatusSeeOther, redirectURL)
 	}
 	c.SetCookie(ses.Cookie())
@@ -151,8 +183,8 @@ func (h userHandler) getCallback(c echo.Context) error {
 		return err
 	}
 
-	ref := refresh.New(uuid.NewString(), *u, keep)
-	if err := h.refreshStore.Create(*ref, c.Request().Context()); err != nil {
+	ref := *refresh.New(uuid.New(), u, keep)
+	if err := h.refreshStore.Create(c.Request().Context(), ref); err != nil {
 		return c.Redirect(http.StatusSeeOther, redirectURL)
 	}
 	c.SetCookie(ref.Cookie())
@@ -161,18 +193,17 @@ func (h userHandler) getCallback(c echo.Context) error {
 }
 
 func (h userHandler) getMe(c echo.Context) error {
-	user := c.Get("user")
-	if user == nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "no user found")
-	}
-
-	return c.JSON(http.StatusOK, user)
+	return c.JSON(http.StatusOK, MustGetUser(c))
 }
 
 func (h userHandler) logout(c echo.Context) error {
 	var errs error
+
 	if refreshCookie, err := c.Cookie("refresh"); err == nil {
-		if err := h.refreshStore.Delete(refreshCookie.Value, c.Request().Context()); err != nil {
+		if id, err := uuid.Parse(refreshCookie.Value); err != nil {
+			c.Echo().Logger.Error("Invalid refresh token", err)
+			errs = errors.Join(errs, err)
+		} else if err := h.refreshStore.Delete(c.Request().Context(), id); err != nil {
 			c.Echo().Logger.Error("Failed to delete refresh token", err)
 			errs = errors.Join(errs, err)
 		} else {
@@ -189,7 +220,7 @@ func (h userHandler) logout(c echo.Context) error {
 	}
 
 	if sessionCookie, err := c.Cookie("session"); err == nil {
-		if err := h.sessionStore.Delete(sessionCookie.Value, c.Request().Context()); err != nil {
+		if err := h.sessionStore.Delete(c.Request().Context(), sessionCookie.Value); err != nil {
 			c.Echo().Logger.Error("Failed to delete session token", err)
 			errs = errors.Join(errs, err)
 		} else {
@@ -210,4 +241,8 @@ func (h userHandler) logout(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusOK)
+}
+
+func MustGetUser(c echo.Context) user.User {
+	return c.Get("user").(user.User)
 }

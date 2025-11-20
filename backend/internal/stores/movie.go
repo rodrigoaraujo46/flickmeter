@@ -7,33 +7,31 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rodrigoaraujo46/flickmeter/backend/internal/db"
 )
 
 type movieStore struct {
-	db *pgxpool.Pool
+	db      *pgxpool.Pool
+	timeout time.Duration
 }
 
 func NewMovieStore(db *pgxpool.Pool) *movieStore {
-	return &movieStore{db}
+	return &movieStore{db, time.Second}
 }
 
-func (m movieStore) ReadAverageRating(c context.Context, id uint) (float64, error) {
-	ctx, cancel := context.WithTimeout(c, 3*time.Second)
+func (s movieStore) ReadAverageRating(c context.Context, id int32) (float64, error) {
+	ctx, cancel := context.WithTimeout(c, s.timeout)
 	defer cancel()
 
-	const query = `
-		SELECT average_rating
-		FROM movies
-		WHERE id = $1;
-	`
+	q := db.New(s.db)
 
-	var average float64
-	if err := m.db.QueryRow(ctx, query, id).Scan(&average); err != nil {
+	movie, err := q.ReadMovie(ctx, id)
+	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return 0, nil
 		}
 		return 0, err
 	}
 
-	return average, nil
+	return float64(movie.TotalRating) / float64(movie.ReviewCount), nil
 }

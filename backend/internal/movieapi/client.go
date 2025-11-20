@@ -86,7 +86,7 @@ func (c client) GetTrending(ctx context.Context, weekly bool) (movie.Movies, err
 	return movieRes.Results, nil
 }
 
-func (c client) GetMovie(ctx context.Context, id uint) (movie.Movie, error) {
+func (c client) GetMovie(ctx context.Context, id int32) (movie.Movie, error) {
 	url := fmt.Sprintf("https://api.themoviedb.org/3/movie/%d?language=en-US", id)
 
 	var empty movie.Movie
@@ -127,7 +127,7 @@ func (c client) GetMovie(ctx context.Context, id uint) (movie.Movie, error) {
 	return movie, nil
 }
 
-func (c client) GetVideos(ctx context.Context, id uint) (movie.Videos, error) {
+func (c client) GetVideos(ctx context.Context, id int32) (movie.Videos, error) {
 	url := fmt.Sprintf("https://api.themoviedb.org/3/movie/%d/videos?language=en-US", id)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)

@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/redis/go-redis/v9"
+	"github.com/rodrigoaraujo46/assert"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/config"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/handlers"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/movieapi"
@@ -26,22 +31,40 @@ func main() {
 }
 
 func setUpHandlers(c config.Config, e *echo.Echo) {
-	psql := stores.NewPostgresClient(c.Postgres)
-	redis := stores.NewRedisClient(c.Redis)
+	psql, err := pgxpool.New(context.Background(), c.Postgres.Address)
+	assert.NoError(err, "failed to connect to postgres")
 
-	userHandler := handlers.NewUserHandler(
-		stores.NewSessionStore(*redis),
-		stores.NewRefreshStore(psql),
-		stores.NewUserStore(psql),
-		c.Gothic,
-	)
-	movieHandler := handlers.NewMovieHandler(
-		movieapi.NewClient(c.MovieAPI),
-		stores.NewMovieStore(psql),
-		stores.NewReviewStore(psql),
-	)
+	ExecSchema(psql)
 
-	e.Use(userHandler.AuthMiddleware)
-	userHandler.RegisterRoutes(e.Group("/users"))
-	movieHandler.RegisterRoutes(e.Group("/movies"))
+	redis := redis.NewClient(&redis.Options{Addr: c.Redis.Address})
+
+	userHandler := handlers.NewUserHandler(stores.NewSessionStore(*redis),
+		stores.NewRefreshStore(psql), stores.NewUserStore(psql), c.Gothic)
+
+	movieHandler := handlers.NewMovieHandler(movieapi.NewClient(c.MovieAPI),
+		stores.NewMovieStore(psql), stores.NewReviewStore(psql))
+
+	watchlistHandler := handlers.NewWatchlistHandler(stores.NewWatchlistStore(psql))
+
+	userHandler.RegisterRoutes(e.Group("/users"), userHandler.Protection)
+	movieHandler.RegisterRoutes(e.Group("/movies"), userHandler.Protection)
+	watchlistHandler.RegisterRoutes(e.Group("/watchlists"))
+}
+
+func ExecSchema(db *pgxpool.Pool) error {
+	ctx := context.Background()
+
+	sqlBytes, err := os.ReadFile("./schema.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read schema file: %w", err)
+	}
+
+	sql := string(sqlBytes)
+
+	_, err = db.Exec(ctx, sql)
+	if err != nil {
+		return fmt.Errorf("failed to exec schema: %w", err)
+	}
+
+	return nil
 }

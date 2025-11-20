@@ -7,11 +7,11 @@ import (
 )
 
 type Review struct {
-	Id        uint      `json:"id"`
-	MovieId   uint      `json:"movie_id"`
-	UserId    uint      `json:"user_id"`
+	Id        int32     `json:"id"`
+	MovieId   int32     `json:"movie_id"`
+	UserId    int32     `json:"user_id"`
 	Title     string    `json:"title"`
-	Rating    uint      `json:"rating"`
+	Rating    int32     `json:"rating"`
 	Review    string    `json:"review"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -19,3 +19,7 @@ type Review struct {
 }
 
 type Reviews []Review
+
+func NewReview(title string, rating int32, review string) *Review {
+	return &Review{Title: title, Rating: rating, Review: review}
+}

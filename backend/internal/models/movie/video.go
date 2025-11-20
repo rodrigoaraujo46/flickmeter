@@ -12,7 +12,7 @@ type Video struct {
 	Name        string `json:"name"`
 	Key         string `json:"key"`
 	Site        string `json:"site"`
-	Size        uint   `json:"size"` // defaults to 0
+	Size        int32  `json:"size"` // defaults to 0
 	Type        string `json:"type"`
 	Official    bool   `json:"official"` // defaults to true
 	PublishedAt string `json:"published_at"`

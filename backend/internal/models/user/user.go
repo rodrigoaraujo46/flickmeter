@@ -3,19 +3,16 @@ package user
 import (
 	"fmt"
 	"math/rand"
-	"time"
 )
 
 type User struct {
-	Id        uint      `json:"id"`
-	Email     string    `json:"-"`
-	Username  string    `json:"username"`
-	AvatarURL string    `json:"avatar_url"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	Id        int32  `json:"id"`
+	Email     string `json:"-"`
+	Username  string `json:"username"`
+	AvatarURL string `json:"avatar_url"`
 }
 
-func New(email, username, avatar_url string) *User {
+func New(email string, username, avatar_url string) *User {
 	return &User{
 		Email:     email,
 		Username:  username,

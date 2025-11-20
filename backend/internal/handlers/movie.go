@@ -8,52 +8,52 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/models/movie"
-	"github.com/rodrigoaraujo46/flickmeter/backend/internal/models/user"
 	"github.com/rodrigoaraujo46/flickmeter/backend/internal/stores"
 )
 
-type MovieClient interface {
-	GetTrending(ctx context.Context, weekly bool) (movie.Movies, error)
-	GetMovie(ctx context.Context, id uint) (movie.Movie, error)
-	GetVideos(ctx context.Context, id uint) (movie.Videos, error)
-	Search(ctx context.Context, query string) (movie.Movies, error)
-}
+type (
+	MovieClient interface {
+		GetTrending(ctx context.Context, weekly bool) (movie.Movies, error)
+		GetMovie(ctx context.Context, id int32) (movie.Movie, error)
+		GetVideos(ctx context.Context, id int32) (movie.Videos, error)
+		Search(ctx context.Context, query string) (movie.Movies, error)
+	}
 
-type MovieStore interface {
-	ReadAverageRating(ctx context.Context, movieId uint) (float64, error)
-}
+	MovieStore interface {
+		ReadAverageRating(ctx context.Context, movieId int32) (float64, error)
+	}
 
-type ReviewStore interface {
-	Create(ctx context.Context, review *movie.Review) error
-	ReadReviews(ctx context.Context, movieId, page uint) (movie.Reviews, error)
-	ReadUserReview(ctx context.Context, movieId, userId uint) (movie.Review, error)
-	Update(ctx context.Context, review *movie.Review) error
-	Delete(ctx context.Context, review *movie.Review) error
-}
+	ReviewStore interface {
+		Create(ctx context.Context, review movie.Review) error
+		ReadReviews(ctx context.Context, movieId, page int32) (movie.Reviews, error)
+		ReadUserReview(ctx context.Context, movieId, userId int32) (movie.Review, error)
+		ReadReview(ctx context.Context, id int32) (movie.Review, error)
+		Update(ctx context.Context, review movie.Review) (movie.Review, error)
+		Delete(ctx context.Context, id int32) error
+	}
 
-type movieHandler struct {
-	client      MovieClient
-	movieStore  MovieStore
-	reviewStore ReviewStore
-}
+	movieHandler struct {
+		client      MovieClient
+		movieStore  MovieStore
+		reviewStore ReviewStore
+	}
+)
 
 func NewMovieHandler(movieClient MovieClient, movieStore MovieStore, reviewStore ReviewStore) *movieHandler {
 	return &movieHandler{movieClient, movieStore, reviewStore}
 }
 
-func (h movieHandler) RegisterRoutes(g *echo.Group) {
-	g.GET("/trending", h.getTrending)
-
+func (h movieHandler) RegisterRoutes(g *echo.Group, protection echo.MiddlewareFunc) {
 	g.GET("/:id", h.getMovie)
-
 	g.GET("/:id/videos", h.getVideos)
-
-	g.GET("/:id/reviews", h.getReviews)
-	g.GET("/:id/reviews/me", h.getUserReview)
-	g.POST("/:id/reviews", h.postReview)
-	g.PATCH("/:id/reviews/:reviewid", h.patchReview)
-	g.DELETE("/:id/reviews/:reviewid", h.deleteReview)
+	g.GET("/trending", h.getTrending)
 	g.GET("/search", h.searchMovies)
+	g.GET("/:id/reviews", h.getReviews)
+
+	g.GET("/:id/reviews/me", h.getUserReview, protection)
+	g.POST("/:id/reviews", h.postReview, protection)
+	g.PATCH("/:id/reviews/:reviewid", h.patchReview, protection)
+	g.DELETE("/:id/reviews/:reviewid", h.deleteReview, protection)
 }
 
 func (h movieHandler) getTrending(c echo.Context) error {
@@ -72,17 +72,17 @@ func (h movieHandler) getTrending(c echo.Context) error {
 }
 
 func (h movieHandler) getMovie(c echo.Context) error {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 0)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Not a valid movie id").SetInternal(err)
 	}
 
-	movie, err := h.client.GetMovie(c.Request().Context(), uint(id))
+	movie, err := h.client.GetMovie(c.Request().Context(), int32(id))
 	if err != nil {
 		return err
 	}
 
-	movie.VoteAverage, err = h.movieStore.ReadAverageRating(c.Request().Context(), uint(id))
+	movie.VoteAverage, err = h.movieStore.ReadAverageRating(c.Request().Context(), int32(id))
 	if err != nil {
 		return err
 	}
@@ -91,12 +91,12 @@ func (h movieHandler) getMovie(c echo.Context) error {
 }
 
 func (h movieHandler) getVideos(c echo.Context) error {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 0)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Not a valid movid id").SetInternal(err)
 	}
 
-	videos, err := h.client.GetVideos(c.Request().Context(), uint(id))
+	videos, err := h.client.GetVideos(c.Request().Context(), int32(id))
 	if err != nil {
 		return err
 	}
@@ -108,21 +108,21 @@ func (h movieHandler) getVideos(c echo.Context) error {
 }
 
 func (h movieHandler) getReviews(c echo.Context) error {
-	movieId, err := strconv.ParseInt(c.Param("id"), 10, 0)
+	movieId, err := strconv.ParseInt(c.Param("id"), 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid movie id").SetInternal(err)
 	}
 
-	pageStr, page := c.QueryParam("page"), uint(1)
+	pageStr, page := c.QueryParam("page"), int32(1)
 	if pageStr != "" {
-		if p, err := strconv.ParseInt(pageStr, 10, 0); err != nil {
+		if p, err := strconv.ParseInt(pageStr, 10, 32); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, "Invalid page").SetInternal(err)
 		} else {
-			page = uint(p)
+			page = int32(p)
 		}
 	}
 
-	reviews, err := h.reviewStore.ReadReviews(c.Request().Context(), uint(movieId), page)
+	reviews, err := h.reviewStore.ReadReviews(c.Request().Context(), int32(movieId), page)
 	if err != nil {
 		return err
 	}
@@ -131,17 +131,12 @@ func (h movieHandler) getReviews(c echo.Context) error {
 }
 
 func (h movieHandler) getUserReview(c echo.Context) error {
-	movieId, err := strconv.ParseUint(c.Param("id"), 10, 0)
+	movieId, err := strconv.ParseInt(c.Param("id"), 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Not a valid movie id").SetInternal(err)
 	}
 
-	user, ok := c.Get("user").(user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "no user found")
-	}
-
-	review, err := h.reviewStore.ReadUserReview(c.Request().Context(), uint(movieId), user.Id)
+	review, err := h.reviewStore.ReadUserReview(c.Request().Context(), int32(movieId), MustGetUser(c).Id)
 	if err != nil {
 		if errors.Is(err, stores.ErrNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, "review not found").SetInternal(err)
@@ -153,26 +148,25 @@ func (h movieHandler) getUserReview(c echo.Context) error {
 }
 
 func (h movieHandler) postReview(c echo.Context) error {
-	movieId, err := strconv.ParseUint(c.Param("id"), 10, 0)
+	movieId, err := strconv.ParseInt(c.Param("id"), 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Not a valid movie id").SetInternal(err)
 	}
 
-	user, ok := c.Get("user").(user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "no user found").
-			SetInternal(errors.New("couldn't assert 'user' to type User"))
-	}
-
-	review := new(movie.Review)
-	if err := c.Bind(review); err != nil {
+	f := &struct {
+		Title  string `json:"title"`
+		Rating int32  `json:"rating"`
+		Review string `json:"review"`
+	}{}
+	if err := c.Bind(f); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest).SetInternal(err)
 	}
 
-	review.UserId = user.Id
-	review.MovieId = uint(movieId)
+	review := movie.NewReview(f.Title, f.Rating, f.Review)
+	review.UserId = MustGetUser(c).Id
+	review.MovieId = int32(movieId)
 
-	if err := h.reviewStore.Create(c.Request().Context(), review); err != nil {
+	if err := h.reviewStore.Create(c.Request().Context(), *review); err != nil {
 		return err
 	}
 
@@ -180,69 +174,73 @@ func (h movieHandler) postReview(c echo.Context) error {
 }
 
 func (h movieHandler) patchReview(c echo.Context) error {
-	review := new(movie.Review)
-
-	movieId, err := strconv.ParseUint(c.Param("id"), 10, 0)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Not a valid movie id").SetInternal(err)
-	}
-	review.MovieId = uint(movieId)
-
-	reviewId, err := strconv.ParseUint(c.Param("reviewid"), 10, 0)
+	reviewId, err := strconv.ParseInt(c.Param("reviewid"), 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Not a valid review id").SetInternal(err)
 	}
-	review.Id = uint(reviewId)
 
-	user, ok := c.Get("user").(user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "no user found").
-			SetInternal(errors.New("couldn't assert 'user' to type User"))
-	}
-	review.UserId = user.Id
+	ctx := c.Request().Context()
 
-	if err := c.Bind(review); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest).SetInternal(err)
-	}
-
-	if err := h.reviewStore.Update(c.Request().Context(), review); err != nil {
+	review, err := h.reviewStore.ReadReview(ctx, int32(reviewId))
+	if err != nil {
+		if errors.Is(err, stores.ErrNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound).SetInternal(err)
+		}
 		return err
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	if review.UserId != MustGetUser(c).Id {
+		return echo.ErrForbidden.SetInternal(
+			errors.New("patchReview: User doesn't own this review"))
+	}
+
+	f := &struct {
+		Title  string `json:"title"`
+		Rating int32  `json:"rating"`
+		Review string `json:"review"`
+	}{}
+	if err := c.Bind(f); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest).SetInternal(err)
+	}
+
+	review.Title = f.Title
+	review.Rating = f.Rating
+	review.Review = f.Review
+
+	result, err := h.reviewStore.Update(ctx, review)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, result)
 }
 
 func (h movieHandler) deleteReview(c echo.Context) error {
-	review := new(movie.Review)
-
-	movieId, err := strconv.ParseUint(c.Param("id"), 10, 0)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Not a valid movie id").SetInternal(err)
-	}
-	review.MovieId = uint(movieId)
-
-	reviewId, err := strconv.ParseUint(c.Param("reviewid"), 10, 0)
+	reviewId, err := strconv.ParseInt(c.Param("reviewid"), 10, 32)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Not a valid review id").SetInternal(err)
 	}
-	review.Id = uint(reviewId)
 
-	user, ok := c.Get("user").(user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "no user found").
-			SetInternal(errors.New("couldn't assert 'user' to type User"))
-	}
-	review.UserId = user.Id
+	ctx := c.Request().Context()
 
-	if err := c.Bind(review); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest).SetInternal(err)
-	}
-
-	if err := h.reviewStore.Delete(c.Request().Context(), review); err != nil {
+	review, err := h.reviewStore.ReadReview(ctx, int32(reviewId))
+	if err != nil {
+		if errors.Is(err, stores.ErrNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound).SetInternal(err)
+		}
 		return err
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	if review.UserId != MustGetUser(c).Id {
+		return echo.ErrForbidden.SetInternal(
+			errors.New("deleteReview: User doesn't own this review"))
+	}
+
+	if err := h.reviewStore.Delete(ctx, review.Id); err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
 }
 
 func (h movieHandler) searchMovies(c echo.Context) error {

@@ -46,21 +46,12 @@ func MustLoadConfig() Config {
 	assert.NoError(godotenv.Load(), "Couldn't open .env files")
 
 	return Config{
-		Host: mustLoadEnv("HOST"),
-		Port: mustLoadEnv("PORT"),
-		Redis: Redis{
-			Address: mustLoadEnv("REDIS_ADDR"),
-		},
-		Postgres: Postgres{
-			Address: mustLoadEnv("POSTGRES_ADDR"),
-		},
-		Gothic: Gothic{
-			CookieStoreKey: mustLoadEnv("COOKIE_STORE_KEY"),
-			Providers:      mustLoadProviders(),
-		},
-		MovieAPI: MovieAPI{
-			Token: mustLoadEnv("MOVIE_DB_TOKEN"),
-		},
+		Host:     mustLoadEnv("HOST"),
+		Port:     mustLoadEnv("PORT"),
+		Redis:    Redis{Address: mustLoadEnv("REDIS_ADDR")},
+		Postgres: Postgres{Address: mustLoadEnv("POSTGRES_ADDR")},
+		Gothic:   Gothic{CookieStoreKey: mustLoadEnv("COOKIE_STORE_KEY"), Providers: mustLoadProviders()},
+		MovieAPI: MovieAPI{Token: mustLoadEnv("MOVIE_DB_TOKEN")},
 	}
 }
 
